@@ -217,6 +217,26 @@ h1.glitch::after{background:linear-gradient(#5be7ff,#5be7ff);transform:translate
 .hud{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:#6f8aa3}
 .hud b{color:#5be7ff;font-weight:700}
 @media (prefers-reduced-motion:reduce){.calc .res.panel,.calc>.panel:last-child,.lab .glass{animation:none}}
+
+/* ===== PERFORMANCE LAYER: smooth scroll on phones ===== */
+body{background-attachment:scroll}
+body::before{position:absolute;height:1200px;mask:none;-webkit-mask:none;opacity:.7}
+.calc .res.panel,.calc>.panel:last-child,.lab .glass{animation:none!important;background:linear-gradient(180deg,rgba(14,24,38,.95),rgba(8,14,23,.95)) padding-box,linear-gradient(135deg,#5be7ff,#7c5cff 50%,#ff5dc8) border-box!important}
+.lab .stat,.lab .glass,.sess,.panel,#ask{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.panel,.panel:hover{transition:border-color .25s;box-shadow:none}
+.panel:hover{box-shadow:0 0 0 1px rgba(91,231,255,.25)}
+h1{animation:none;background-size:100% 100%}
+#top::after{display:none}
+#spot{display:none}
+.lab .node path{animation-duration:3.2s}
+@media(max-width:900px){.lab .ticker div{animation-duration:90s}.tilt{transform:none!important}}
+
+.lab .node path{filter:none}
+.lab::before{mask:none;-webkit-mask:none;opacity:.5}
+.big .v{filter:none}
+.lab .ticker{mask:none;-webkit-mask:none}
+.lab .stat b{text-shadow:none}
+.cta,#askbtn,.wa{box-shadow:none}
 </style>
 </head>
 <body>
@@ -515,14 +535,14 @@ function draw(now){const [x,w,h]=fit(uc);const pad=34,sx=v=>pad+(X(v)+5)/10*(w-p
  P=[];const cx=w/2,cy=h/2;
  U.pts.forEach((p,i)=>{const gx=sx(p[0]),gy=sy(p[1]),px=cx+(gx-cx)*e,py=cy+(gy-cy)*e;const gold=/RELAYS?\|XAUUSDm.*(asia7h\|th1\.5\|ex9|follow\|ex9\|th1\.5)/.test(p[3]);P.push([px,py,i,gold]);
   if(gold)return;x.fillStyle=col(p[2]);x.globalAlpha=p[2]?0.95:0.38;x.beginPath();x.arc(px,py,p[2]?3.2:1.7,0,7);x.fill()});
- x.globalAlpha=1;P.filter(q=>q[3]).forEach(q=>{const r=6+(red?0:2*Math.sin(now/300));x.shadowColor='#ffd166';x.shadowBlur=18;x.fillStyle='#ffd166';x.beginPath();x.arc(q[0],q[1],r,0,7);x.fill();x.shadowBlur=0});
+ x.globalAlpha=1;P.filter(q=>q[3]).forEach(q=>{const r=6;x.shadowColor='#ffd166';x.shadowBlur=18;x.fillStyle='#ffd166';x.beginPath();x.arc(q[0],q[1],r,0,7);x.fill();x.shadowBlur=0});
  if(hov>=0){const q=P[hov];x.strokeStyle='#fff';x.beginPath();x.arc(q[0],q[1],7,0,7);x.stroke()}
- requestAnimationFrame(draw)}
-requestAnimationFrame(draw);
-uc.addEventListener('pointermove',ev=>{const r=uc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;let b=-1,bd=196;P.forEach((q,j)=>{const d=(q[0]-mx)**2+(q[1]-my)**2;if(d<bd){bd=d;b=j}});hov=b;
+ if(now-t0<1700)requestAnimationFrame(draw)}
+let uStarted=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!uStarted){uStarted=true;requestAnimationFrame(draw)}}).observe(uc);addEventListener('resize',()=>{if(uStarted)requestAnimationFrame(t=>draw(t))});
+uc.addEventListener('pointermove',ev=>{const r=uc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;requestAnimationFrame(draw);let b=-1,bd=196;P.forEach((q,j)=>{const d=(q[0]-mx)**2+(q[1]-my)**2;if(d<bd){bd=d;b=j}});hov=b;
  if(b<0){tip.style.opacity=0;return}const p=U.pts[P[b][2]];tip.innerHTML=(p[3]||'idea #'+(P[b][2]+1))+'<br>2023-24 t '+p[0]+' &middot; 2025-26 t '+p[1]+'<br>'+['rejected','selected','failed unseen data','unseen +, not significant','PROVEN'][p[2]];
  tip.style.left=Math.min(r.width-220,mx+14)+'px';tip.style.top=(my+40)+'px';tip.style.opacity=1});
-uc.addEventListener('pointerleave',()=>{hov=-1;tip.style.opacity=0});
+uc.addEventListener('pointerleave',()=>{hov=-1;tip.style.opacity=0;requestAnimationFrame(draw)});
 const rc=document.getElementById('relay');let r0=null;
 function rdraw(now){const [x,w,h]=fit(rc);r0??=now;const k=red?1:Math.min(1,(now-r0)/2200);const E=RJ.eq,T=RJ.t,n=E.length,mn=Math.min(10000,...E),mx=Math.max(...E),pad=34;
  const sx=i=>pad+i/(n-1)*(w-pad-10),sy=v=>h-pad-(v-mn)/(mx-mn)*(h-pad-20);
@@ -543,17 +563,18 @@ addEventListener('resize',()=>{r0=-1e9;requestAnimationFrame(rdraw)});
 // neural field in the hero
 const c=document.getElementById('neural');if(c){const x=c.getContext('2d');let W,H,N=[],mx=-1e4,my=-1e4;
  function size(){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;W=r.width;H=r.height;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0);
-  const n=Math.min(110,Math.round(W*H/14000));N=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.6+.6,h:Math.random()}))}
+  const n=Math.min(innerWidth<700?28:60,Math.round(W*H/22000));N=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.6+.6,h:Math.random()}))}
  size();addEventListener('resize',size);c.parentElement.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top});
  function f(){x.clearRect(0,0,W,H);for(const p of N){if(!red){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1}
    const dx=p.x-mx,dy=p.y-my,dd=dx*dx+dy*dy;if(dd<16000&&!red){p.x+=dx/Math.sqrt(dd+1)*.6;p.y+=dy/Math.sqrt(dd+1)*.6}}
   for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){const a=N[i],b=N[j],d=(a.x-b.x)**2+(a.y-b.y)**2;if(d<17000){x.strokeStyle=`rgba(${a.h>.5?'91,231,255':'124,92,255'},${(1-d/17000)*.35})`;x.lineWidth=.8;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}
-  for(const p of N){x.fillStyle=p.h>.85?'#ffd166':p.h>.5?'#5be7ff':'#9d8bff';x.shadowColor=x.fillStyle;x.shadowBlur=8;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill();x.shadowBlur=0}
-  if(!red)requestAnimationFrame(f)}
+  for(const p of N){x.fillStyle=p.h>.85?'#ffd166':p.h>.5?'#5be7ff':'#9d8bff';x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}
+  if(!red&&vis)requestAnimationFrame(f)}
+ let vis=true;new IntersectionObserver(es=>{const v=es[0].isIntersecting;if(v&&!vis){vis=true;requestAnimationFrame(f)}else vis=v}).observe(c);
  f()}
 // scroll reveal
 const els=document.querySelectorAll('section .panel,section h2,.feat,.flow,.plat,.lab .stat,.lab .glass,.lab .node');
-if(!red&&'IntersectionObserver'in window){els.forEach(e=>e.classList.add('reveal'));const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});els.forEach(e=>io.observe(e))}
+if(false){els.forEach(e=>e.classList.add('reveal'));const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});els.forEach(e=>io.observe(e))}
 // cursor spotlight
 const sp=document.getElementById('spot');if(sp&&!red&&matchMedia('(pointer:fine)').matches)addEventListener('pointermove',e=>{sp.style.left=e.clientX+'px';sp.style.top=e.clientY+'px'});
 })();
